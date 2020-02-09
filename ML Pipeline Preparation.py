@@ -8,7 +8,7 @@
 # - Load dataset from database with [`read_sql_table`](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_sql_table.html)
 # - Define feature and target variables X and Y
 
-# In[3]:
+# In[2]:
 
 
 # import libraries
@@ -22,7 +22,7 @@ nltk.download('punkt')
 nltk.download('stopwords')
 
 
-# In[2]:
+# In[29]:
 
 
 # import statements
@@ -35,13 +35,14 @@ from sklearn.datasets import make_multilabel_classification
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV, RepeatedKFold
 from sklearn.metrics import confusion_matrix
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
 from scipy import sparse
 
 
-# In[15]:
+# In[4]:
 
 
 # load data from database
@@ -49,20 +50,13 @@ engine = create_engine('sqlite:///Alexandre.db')
 df = pd.read_sql_table('Udacity', engine)
 X = df.loc[:,'message']
 Y = df.iloc[:,4:]
-Y = np.array(Y)
 
-
-
-
-# In[5]:
-
-
-y_sparse = sparse.csr_matrix(np.array(Y))
+y_columns = Y.columns
 
 
 # ### 2. Write a tokenization function to process your text data
 
-# In[6]:
+# In[5]:
 
 
 def tokenize(text):
@@ -75,7 +69,7 @@ def tokenize(text):
 # ### 3. Build a machine learning pipeline
 # This machine pipeline should take in the `message` column as input and output classification results on the other 36 categories in the dataset. You may find the [MultiOutputClassifier](http://scikit-learn.org/stable/modules/generated/sklearn.multioutput.MultiOutputClassifier.html) helpful for predicting multiple target variables.
 
-# In[7]:
+# In[6]:
 
 
 pipeline = Pipeline([
@@ -89,7 +83,7 @@ pipeline = Pipeline([
 # - Split data into train and test sets
 # - Train pipeline
 
-# In[17]:
+# In[7]:
 
 
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
@@ -98,20 +92,38 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
 # ### 5. Test your model
 # Report the f1 score, precision and recall for each output category of the dataset. You can do this by iterating through the columns and calling sklearn's `classification_report` on each.
 
-# In[13]:
+# In[8]:
 
 
 def display_results(y_test, y_pred):
     labels = np.unique(y_pred)
-    confusion_mat = confusion_matrix(y_test, y_pred, labels=labels)
     accuracy = (y_pred == y_test).mean()
+#     classification_report = 
+    class_rep_dict = {}
+    for label_col in range(len(labels)):
+        y_true_label = y_test[:, label_col]
+        y_pred_label = y_pred[:, label_col]
+        class_rep_dict[labels[label_col]] = classification_report(y_pred=y_pred_label, y_true=y_true_label, labels=labels)
 
     print("Labels:", labels)
-    print("Confusion Matrix:\n", confusion_mat)
     print("Accuracy:", accuracy)
+#     print("Classification report: ", classification_report)
+    for label, matrix in class_rep_dict.items():
+        print("Classification report for output {}:".format(label))
+        print(matrix)
+    
+    
+
+    
 
 
-# In[18]:
+# In[9]:
+
+
+Y_test =Y_test.values
+
+
+# In[10]:
 
 
 pipeline.fit(X_train, Y_train)
@@ -122,12 +134,27 @@ display_results(Y_test, Y_pred)
 # ### 6. Improve your model
 # Use grid search to find better parameters. 
 
-# In[ ]:
+# In[40]:
 
 
-parameters = 
+parameters = {"clf__estimator__n_estimators": [10, 100, 250],
+     "clf__estimator__max_depth":[8],
+     "clf__estimator__random_state":[42]}
 
-cv = 
+
+rkf = RepeatedKFold(
+    n_splits=10,
+    n_repeats=2,
+    random_state=42
+)
+
+
+cv = GridSearchCV(
+    pipeline,
+    parameters,
+    cv=rkf,
+    scoring='accuracy',
+    n_jobs=-1)
 
 
 # ### 7. Test your model
@@ -135,10 +162,18 @@ cv =
 # 
 # Since this project focuses on code quality, process, and  pipelines, there is no minimum performance metric needed to pass. However, make sure to fine tune your models for accuracy, precision and recall to make your project stand out - especially for your portfolio!
 
-# In[ ]:
+# In[41]:
+
+
+model = cv.fit(X_train,Y_train).best_estimator_ 
+
+
+# In[39]:
 
 
 
+Y_pred = model.predict(X_test)
+display_results(Y_test, Y_pred)
 
 
 # ### 8. Try improving your model further. Here are a few ideas:
