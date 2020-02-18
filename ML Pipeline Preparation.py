@@ -8,7 +8,7 @@
 # - Load dataset from database with [`read_sql_table`](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_sql_table.html)
 # - Define feature and target variables X and Y
 
-# In[2]:
+# In[1]:
 
 
 # import libraries
@@ -22,7 +22,7 @@ nltk.download('punkt')
 nltk.download('stopwords')
 
 
-# In[29]:
+# In[2]:
 
 
 # import statements
@@ -42,7 +42,7 @@ from sklearn.metrics import classification_report
 from scipy import sparse
 
 
-# In[4]:
+# In[3]:
 
 
 # load data from database
@@ -56,7 +56,7 @@ y_columns = Y.columns
 
 # ### 2. Write a tokenization function to process your text data
 
-# In[5]:
+# In[4]:
 
 
 def tokenize(text):
@@ -69,7 +69,7 @@ def tokenize(text):
 # ### 3. Build a machine learning pipeline
 # This machine pipeline should take in the `message` column as input and output classification results on the other 36 categories in the dataset. You may find the [MultiOutputClassifier](http://scikit-learn.org/stable/modules/generated/sklearn.multioutput.MultiOutputClassifier.html) helpful for predicting multiple target variables.
 
-# In[6]:
+# In[5]:
 
 
 pipeline = Pipeline([
@@ -83,7 +83,7 @@ pipeline = Pipeline([
 # - Split data into train and test sets
 # - Train pipeline
 
-# In[7]:
+# In[13]:
 
 
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
@@ -92,7 +92,7 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
 # ### 5. Test your model
 # Report the f1 score, precision and recall for each output category of the dataset. You can do this by iterating through the columns and calling sklearn's `classification_report` on each.
 
-# In[8]:
+# In[7]:
 
 
 def display_results(y_test, y_pred):
@@ -117,13 +117,13 @@ def display_results(y_test, y_pred):
     
 
 
-# In[9]:
+# In[16]:
 
 
 Y_test =Y_test.values
 
 
-# In[10]:
+# In[9]:
 
 
 pipeline.fit(X_train, Y_train)
@@ -134,26 +134,19 @@ display_results(Y_test, Y_pred)
 # ### 6. Improve your model
 # Use grid search to find better parameters. 
 
-# In[40]:
+# In[10]:
 
 
-parameters = {"clf__estimator__n_estimators": [10, 100, 250],
+parameters = {"clf__estimator__n_estimators": [10, 500, 1000],
      "clf__estimator__max_depth":[8],
      "clf__estimator__random_state":[42]}
 
 
-rkf = RepeatedKFold(
-    n_splits=10,
-    n_repeats=2,
-    random_state=42
-)
 
 
 cv = GridSearchCV(
     pipeline,
     parameters,
-    cv=rkf,
-    scoring='accuracy',
     n_jobs=-1)
 
 
@@ -162,18 +155,17 @@ cv = GridSearchCV(
 # 
 # Since this project focuses on code quality, process, and  pipelines, there is no minimum performance metric needed to pass. However, make sure to fine tune your models for accuracy, precision and recall to make your project stand out - especially for your portfolio!
 
-# In[41]:
+# In[11]:
 
 
-model = cv.fit(X_train,Y_train).best_estimator_ 
+cv.fit(X_train,Y_train)
+y_pred = cv.predict(X_test)
 
 
-# In[39]:
+# In[17]:
 
 
-
-Y_pred = model.predict(X_test)
-display_results(Y_test, Y_pred)
+print(classification_report(Y_test, y_pred))
 
 
 # ### 8. Try improving your model further. Here are a few ideas:
